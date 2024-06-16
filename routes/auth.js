@@ -204,7 +204,7 @@ router.put(
 );
 
 // route 5: get all users data
-router.get("/getAllUsersData", async (req, res) => {
+router.get("/getAllUsersData", fetchUser, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(401).json({ errors: errors.array() });
