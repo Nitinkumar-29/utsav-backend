@@ -13,7 +13,7 @@ app.use(express.urlencoded({ limit: "30mb", extended: true }));
 
 app.use(
   cors({
-    origin: ["*"],
+    origin: ["https://utsav-alpha.vercel.app"],
     methods: ["POST", "GET", "PUT", "DELETE"],
   })
 );
