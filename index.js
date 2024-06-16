@@ -12,12 +12,10 @@ app.use(express.json({ limit: "30mb", extended: true }));
 app.use(express.urlencoded({ limit: "30mb", extended: true }));
 
 app.use(
-  cors(
-    {
+  cors({
     origin: ["*"],
     methods: ["POST", "GET", "PUT", "DELETE"],
-  }
-)
+  })
 );
 
 app.use(bodyParser.json());
@@ -28,7 +26,6 @@ app.get("/", (req, res) => {
 
 // adding routes
 app.use("/api/auth", require("./routes/auth"));
-app.use("/api/notify", require("./routes/notify"));
 app.use("/api/activity", require("./routes/activity"));
 
 app.use(errorHandler);
@@ -46,7 +43,6 @@ process.on("uncaughtException", (err) => {
   // Optionally exit the process
   process.exit(1);
 });
-
 
 app.listen(port, () => {
   console.log(`utsav backend running on http://localhost:${port}`);
