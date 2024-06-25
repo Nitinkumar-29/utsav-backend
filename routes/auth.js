@@ -201,7 +201,7 @@ router.put(
       return res.status(500).json({ message: "Internal server error" });
     }
   }
-);
+);    
 
 // route 5: get all users data
 router.get("/getAllUsersData", fetchUser, async (req, res) => {

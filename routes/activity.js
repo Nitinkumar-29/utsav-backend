@@ -6,6 +6,7 @@ const fetchUser = require("../middleware/fetchUser");
 const User = require("../models/User");
 const Reviews = require("../models/Review");
 const errorHandler = require("../middleware/errorHandler");
+const bookVenue = require("../models/placedOrder");
 
 // saved vendor Item like venues or other subcategory particular data
 router.post("/saveItem", fetchUser, async (req, res) => {
@@ -172,6 +173,30 @@ router.get("/getAllReviews/:itemId", async (req, res) => {
   }
 });
 
+// Route to check whether venue is shortlisted or not
+router.get("/checkVenue/:id", fetchUser, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(401).json({ errors: errors.array() });
+  }
+  const userId = req.user.id;
+  const itemId = req.params.id;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json("User not found!");
+    }
+    const savedItem = await SavedItem.findOne({ itemId, userId });
+    if (!savedItem) {
+      return res.status(404).json({ shortlisted: false, userId });
+    }
+    res.status(200).json({ savedItem, shortlisted: true });
+  } catch (error) {
+    console.error("Error checking venue shortlisted:", error);
+    res.status(500).json("Internal server error");
+  }
+});
+
 // delete review by id
 router.delete("/deleteReview/:id", fetchUser, async (req, res) => {
   const errors = validationResult(req);
@@ -235,6 +260,116 @@ router.get("/fetchAllReviews", fetchUser, async (req, res) => {
   } catch (error) {
     console.error("Error fetching reviews:", error);
     res.status(500).json("Internal server error");
+  }
+});
+
+// router to verify the user on booking whether he is existing user or not or do we have token or not
+router.post(
+  "/verifyUserBeforeBooking",
+  [
+    body("email").notEmpty().withMessage("user email"),
+    body("mobileNumber").notEmpty().withMessage("user mobile number"),
+    body("name").notEmpty().withMessage("user name"),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(403).json({ errors: errors.array() });
+    }
+
+    const { email, mobileNumber, name } = req.body;
+    try {
+      const user = await User.findOne({ email, mobileNumber, name });
+      if (!user) {
+        return res
+          .status(404)
+          .json({ message: "User not found", email, mobileNumber, name });
+      }
+      return res
+        .status(200)
+        .json({ message: "User found", email, mobileNumber, name });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error", error });
+    }
+  }
+);
+
+// book venue
+router.post(
+  "/bookVenue",
+  [
+    body("name").notEmpty().withMessage("Name is required"),
+    body("email").isEmail().withMessage("Invalid email"),
+    body("mobileNumber").isMobilePhone().withMessage("Invalid mobile number"),
+    body("pincode").notEmpty().withMessage("Pincode is required"),
+    body("time").notEmpty().withMessage("Time is required"),
+    // body("date").isISO8601().withMessage("Invalid date").toDate(), // Correctly parse date
+    body("guests")
+      .isInt({ min: 1 })
+      .withMessage("Guests must be a positive integer"),
+    body("address").notEmpty().withMessage("Address is required"),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const {
+        name,
+        email,
+        mobileNumber,
+        pincode,
+        time,
+        date,
+        guests,
+        address,
+      } = req.body;
+
+      const orderPlaced = new bookVenue({
+        name,
+        email,
+        mobileNumber,
+        pincode,
+        time,
+        date,
+        guests,
+        address,
+        orderPlaced: true,
+      });
+
+      const newOrderPlaced = await orderPlaced.save();
+      return res
+        .status(200)
+        .json({ message: "Order placed successfully", order: newOrderPlaced });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
+
+// router to fetch all bookvenue associated with a email Id
+router.get("/fetchPlacedOrdersData", fetchUser, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(403).json({ errors: errors.array() });
+  }
+  const userId = req.user.id;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const email = user.email;
+    const placedOrdersData = await bookVenue.find({ email });
+
+    res.status(200).json({ placedOrdersData: placedOrdersData || [] });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 

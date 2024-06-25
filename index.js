@@ -11,12 +11,31 @@ const app = express();
 app.use(express.json({ limit: "30mb", extended: true }));
 app.use(express.urlencoded({ limit: "30mb", extended: true }));
 
-app.use(
-  cors({
-    origin: ["https://utsav-alpha.vercel.app"],
-    methods: ["POST", "GET", "PUT", "DELETE"],
-  })
-);
+// List of allowed origins
+const allowedOrigins = [
+  "https://utsav-alpha.vercel.app",
+  "http://localhost:3000", // Add other allowed origins here
+];
+
+// CORS options
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: ["POST", "GET", "PUT", "DELETE"],
+};
+
+app.use(cors(corsOptions));
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
 
 app.use(bodyParser.json());
 
